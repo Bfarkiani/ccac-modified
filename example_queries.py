@@ -146,7 +146,87 @@ def aimd_premature_loss(timeout=60):
         plot_model(qres.model, c, qres.v)
 
 
+
+def aimd_premature_loss_enhanced(timeout=60):
+    '''Finds a case where AIMD bursts 2 BDP packets where buffer size = 2 BDP and
+    cwnd <= 2 BDP. Here 1BDP is due to an ack burst and another BDP is because
+    AIMD just detected 1BDP of loss. This analysis created the example
+    discussed in section 6 of the paper. As a result, cwnd can reduce to 1 BDP
+    even when buffer size is 2BDP, whereas in a fluid model it never goes below
+    1.5 BDP.
+
+    '''
+    c = ModelConfig.default()
+    c.cca = "aimd"
+    c.buf_min = 2
+    c.buf_max = 2
+    c.simplify = False
+    #increase time to 10
+    c.T = 10
+    #repeating default values
+    c.R=1
+    c.C=1
+    c.D=1
+    s, v = make_solver(c)
+
+    # Start with zero loss and zero queue, so CCAC is forced to generate an
+    # example trace *from scratch* showing how bad behavior can happen in a
+    # network that was perfectly normal to begin with
+    s.add(v.L[0] == 0)
+    # Restrict alpha to small values, otherwise CCAC can output obvious and
+    # uninteresting behavior
+    s.add(v.alpha <= 0.1 * c.C * c.R)
+    #Behrooz: forcing three dup acks as it is a variable.
+    s.add(v.dupacks == 3 * v.alpha)
+    # Does there exist a time where loss happened while cwnd <= 1?
+    conds = []
+    for t in range(2, c.T - 1):
+        conds.append(
+            And(
+                v.c_f[0][t] <= 2,
+                v.Ld_f[0][t + 1] - v.Ld_f[0][t] >=
+                1,  # Burst due to loss detection
+                v.S[t + 1 - c.R] - v.S[t - c.R] >=
+                c.C + 1,  # Burst of BDP acks
+                v.A[t + 1] >=
+                v.A[t] + 2,  # Sum of the two bursts
+                v.L[t+1] > v.L[t],
+                # Behrooz: Added to become less than 2 in one of the next steps because it is not always guaranteed.
+                Or(*[
+                    v.c_f[0][t + i] < 2
+                    for i in range(1, c.T - t)
+                ])
+            ))
+
+    # We don't want an example with timeouts
+    for t in range(c.T):
+        s.add(Not(v.timeout_f[0][t]))
+
+    s.add(Or(*conds))
+
+    qres = run_query(c, s, v, timeout)
+    print(qres.satisfiable)
+    #Behrooz: Added some debugging info
+    if str(qres.satisfiable) == "sat":
+        # Export all constraints (the solver's SMT2 representation) to a file.
+        with open("model_constraints.smt2", "w") as f:
+            f.write(s.to_smt2())
+
+        # Export the solution: the model assigning values to all variables.
+        with open("model_solution.txt", "w") as f:
+            # You can use sexpr() to get an SMT-LIB S-expression representation
+            for var, val in qres.model.items():
+                f.write(f"{var} = {val}\n")
+        plot_model(qres.model, c, qres.v)
+
+
+
 if __name__ == "__main__":
+    #aimd_premature_loss() #This is the original one authors provided.
+    aimd_premature_loss_enhanced()
+
+
+    '''
     import sys
 
     funcs = {
@@ -166,3 +246,4 @@ if __name__ == "__main__":
     else:
         print("Command not recognized")
         print(usage)
+    '''

@@ -3,3 +3,5 @@
 Cargo.lock
 compiler/target
 cached/*.cached
+__pycache__/
+.idea/workspace.xml
