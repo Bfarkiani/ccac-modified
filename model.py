@@ -34,9 +34,10 @@ def initial(c: ModelConfig, s: MySolver, v: Variables):
         # These are invariant to y-shift. However, it does make the results
         # easier to interpret if they start from 0
         s.add(v.S_f[n][0] == 0)
-    #Behrooz: Added because in original example, w can be negative => system can server more than design rate
-    #+ it matches assumptions in Assumptions Section D of paper
-    s.add(v.W[0]>=0)
+    if c.enhancement==True:
+        #Behrooz: Added because in original example, w can be negative => system can server more than design rate
+        #+ it matches assumptions in Assumptions Section D of paper
+        s.add(v.W[0]>=0)
 
 def relate_tot(c: ModelConfig, s: MySolver, v: Variables):
     ''' Relate total values to per-flow values '''
@@ -107,12 +108,14 @@ def loss_detected(c: ModelConfig, s: MySolver, v: Variables):
                 s.add(
                     Implies(And(Not(v.timeout_f[n][t]), Not(detectable)),
                             v.Ld_f[n][t] <= v.L_f[n][t - c.R - dt]))
-            #Behrooz: Added because if sender detected loss, there must have been loss in the network!
-            if t>=c.R:
-                s.add(Implies(
-                    v.Ld_f[n][t] > 0,
-                    v.L_f[n][t - c.R] > 0
-                ))
+
+            if c.enhancement==True:
+                #Behrooz: Added because if sender detected loss, there must have been loss in the network!
+                if t>=c.R:
+                    s.add(Implies(
+                        v.Ld_f[n][t] > 0,
+                        v.L_f[n][t - c.R] > 0
+                    ))
 
             # We implement an RTO scheme that magically triggers when S(t) ==
             # A(t) - L(t). While this is not implementable in reality, it is

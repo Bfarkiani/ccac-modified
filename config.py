@@ -40,6 +40,8 @@ class ModelConfig:
 
     # These config variables are calculated automatically
     calculate_qdel: bool
+    #behrooz: Added to be able to compare with original model
+    enhancement: bool
 
     def __init__(self,
                  N: int,
@@ -57,7 +59,8 @@ class ModelConfig:
                  epsilon: str,
                  unsat_core: bool,
                  simplify: bool,
-                 aimd_incr_irrespective: bool = False):
+                 aimd_incr_irrespective: bool = False,
+                 enhancement: bool = True):
         self.__dict__ = locals()
         self.calculate_qdel = cca in ["copa"] or N > 1
 
@@ -91,7 +94,7 @@ class ModelConfig:
         parser.add_argument("--unsat-core", action="store_true")
         parser.add_argument("--simplify", action="store_true")
         parser.add_argument("--aimd-incr-irrespective", action="store_true")
-
+        parser.add_argument("--enhancement", default=True, type=bool)
         return parser
 
     @classmethod

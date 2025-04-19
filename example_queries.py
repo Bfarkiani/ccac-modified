@@ -102,13 +102,32 @@ def aimd_premature_loss(timeout=60):
     1.5 BDP.
 
     '''
+    '''
+    Behrooz: Timing of this doesn't match timing presented in the paper. 
+    Here we see query is satisfied at 5, and then cwnd becomes less than 1.5 at 1
+    In addition we see W(wasted tokens) is negative, which shouldn't be as it contradicts assumptions and logic!
+    output: 
+    alpha =  1/10
+    t  W              S              A              L              Ld_f_0         c_f_0          r_f_0          
+0  -0.2875000000  0.0000000000   0.0062500000   0.0000000000   0.0000000000   3.9000000000   100.0000000000 
+1  -0.2875000000  1.2875000000   4.0000000000   1.0062500000   0.0000000000   4.0000000000   100.0000000000 
+2  -0.2875000000  1.2937500000   5.2875000000   1.0062500000   0.0000000000   4.0000000000   100.0000000000 
+3  -0.2875000000  2.3937500000   5.2937500000   1.0062500000   0.0000000000   4.0000000000   100.0000000000 
+4  -0.2875000000  3.2875000000   6.3937500000   1.0062500000   0.0000000000   4.0000000000   100.0000000000 
+5  -0.2875000000  5.2875000000   6.3937500000   1.0062500000   0.0062500000   2.0000000000   100.0000000000 
+6  -0.2875000000  6.2437500000   8.3937500000   1.0187500000   1.0062500000   2.1000000000   100.0000000000 
+7  -0.2875000000  7.2875000000   9.3500000000   1.0250000000   1.0062500000   2.1000000000   100.0000000000 
+8  -0.2875000000  7.2875000000   9.3562500000   1.0250000000   1.0187500000   1.0500000000   100.0000000000 
+    '''
+
     c = ModelConfig.default()
     c.cca = "aimd"
     c.buf_min = 2
     c.buf_max = 2
     c.simplify = False
-    c.T = 5
-
+    #Behrooz: Increased time and specify enhancement to be false => original query and implementation
+    c.T = 9
+    c.enhancement=False
     s, v = make_solver(c)
 
     # Start with zero loss and zero queue, so CCAC is forced to generate an
@@ -148,12 +167,25 @@ def aimd_premature_loss(timeout=60):
 
 
 def aimd_premature_loss_enhanced(timeout=60):
-    '''Finds a case where AIMD bursts 2 BDP packets where buffer size = 2 BDP and
-    cwnd <= 2 BDP. Here 1BDP is due to an ack burst and another BDP is because
-    AIMD just detected 1BDP of loss. This analysis created the example
-    discussed in section 6 of the paper. As a result, cwnd can reduce to 1 BDP
-    even when buffer size is 2BDP, whereas in a fluid model it never goes below
-    1.5 BDP.
+    '''
+    This version forces query to ask about conditions in which cwnd
+    becomes less than 2.
+    At t=5 we observe the query condition is satisfied (cwnd=2)
+    Then at T=9 we see cwnd drops below 1.5
+output:
+alpha =  1/10
+
+t  W              S              A              L              Ld_f_0         c_f_0          r_f_0
+0  0.0000000000   0.0000000000   0.0083333333   0.0000000000   0.0000000000   8.0000000000   100.0000000000
+1  0.0000000000   1.0000000000   8.0000000000   6.0000000000   0.0000000000   8.0000000000   100.0000000000
+2  0.0000000000   1.9916666667   8.0000000000   6.0000000000   3.0000000000   4.0000000000   100.0000000000
+3  0.0000000000   2.3000000000   11.9916666667  7.2000000000   6.0000000000   4.0000000000   100.0000000000
+4  0.0000000000   3.0000000000   12.3000000000  7.2000000000   6.0000000000   4.0000000000   100.0000000000
+5  0.0000000000   5.0000000000   12.3000000000  7.2000000000   6.2000000000   2.0000000000   100.0000000000
+6  0.0000000000   5.0000000000   14.3000000000  7.3000000000   7.2000000000   2.1000000000   100.0000000000
+7  0.0000000000   6.9166666667   14.3000000000  7.3000000000   7.2000000000   2.1000000000   100.0000000000
+8  0.0000000000   7.0916666667   16.3083333333  7.3083333333   7.2916666667   2.1000000000   100.0000000000
+9  0.0000000000   8.0000000000   16.3083333333  7.3083333333   7.3000000000   1.0500000000   100.0000000000
 
     '''
     c = ModelConfig.default()
@@ -161,12 +193,17 @@ def aimd_premature_loss_enhanced(timeout=60):
     c.buf_min = 2
     c.buf_max = 2
     c.simplify = False
+
+    #Behrooz: increased duration, added enhancement, modified query
     #increase time to 10
     c.T = 10
     #repeating default values
     c.R=1
     c.C=1
     c.D=1
+    #model corrections:
+    c.enhancement=True
+
     s, v = make_solver(c)
 
     # Start with zero loss and zero queue, so CCAC is forced to generate an
@@ -183,6 +220,7 @@ def aimd_premature_loss_enhanced(timeout=60):
     for t in range(2, c.T - 1):
         conds.append(
             And(
+                #this happens at t=5
                 v.c_f[0][t] <= 2,
                 v.Ld_f[0][t + 1] - v.Ld_f[0][t] >=
                 1,  # Burst due to loss detection
@@ -191,7 +229,7 @@ def aimd_premature_loss_enhanced(timeout=60):
                 v.A[t + 1] >=
                 v.A[t] + 2,  # Sum of the two bursts
                 v.L[t+1] > v.L[t],
-                # Behrooz: Added to become less than 2 in one of the next steps because it is not always guaranteed.
+                # Behrooz: Added to force cwnd become less than 2 in one of the next steps because it is not always guaranteed.
                 Or(*[
                     v.c_f[0][t + i] < 2
                     for i in range(1, c.T - t)
@@ -220,11 +258,10 @@ def aimd_premature_loss_enhanced(timeout=60):
         plot_model(qres.model, c, qres.v)
 
 
-
 if __name__ == "__main__":
-    #aimd_premature_loss() #This is the original one authors provided.
-    aimd_premature_loss_enhanced()
-
+    #aimd_premature_loss() #This is the original query authors provided.
+    aimd_premature_loss_enhanced() #This is enhanced model and query
+    #aimd_steady_state()
 
     '''
     import sys
