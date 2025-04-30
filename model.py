@@ -133,6 +133,8 @@ def loss_detected(c: ModelConfig, s: MySolver, v: Variables):
             # we usually want to avoid getting such counter-examples in
             # CCAC. Our timeout strategy sidesteps this issue.
 
+
+            #behrooz: This is really strange logic.
             if t < c.R:
                 s.add(v.timeout_f[n][t] == False)
             else:

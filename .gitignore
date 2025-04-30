@@ -5,3 +5,8 @@ compiler/target
 cached/*.cached
 __pycache__/
 .idea/workspace.xml
+Report.synctex.gz
+.idea/
+model_constraints.smt2
+model_solution.txt
+multi_flow_plot.svg

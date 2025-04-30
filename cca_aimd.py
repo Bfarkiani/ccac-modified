@@ -35,6 +35,13 @@ def can_incr(
                 # policy of capturing a super-set of behaviors. We could of
                 # course add appropriate checks, but that is
                 # unnecessary. This is simpler and possibly more efficient.
+
+                #Behrooz: Question: Why not v.S_f[n][t-c.R] - v.S_f[n][t-c.R-1] >= v.c_f[n][t] ?
+                #service rendered at t will arrive at sender at t+R. so if we are talking about t,
+                #we should consider service at t-c.R
+                #if we change t to t-c.R, it breaks the model and aimd_premature_loss() becomes unsat!
+
+
                 incr.append(And(
                     And([v.c_f[n][t-ddt] == v.c_f[n][t]
                          for ddt in range(1, dt+1)]),

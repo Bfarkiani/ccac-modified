@@ -94,7 +94,7 @@ class ModelConfig:
         parser.add_argument("--unsat-core", action="store_true")
         parser.add_argument("--simplify", action="store_true")
         parser.add_argument("--aimd-incr-irrespective", action="store_true")
-        parser.add_argument("--enhancement", default=True, type=bool)
+        parser.add_argument("--enhancement", default=False, type=bool)
         return parser
 
     @classmethod
@@ -102,7 +102,7 @@ class ModelConfig:
         return cls(args.num_flows, args.D, args.rtt, args.time, args.rate,
                    args.buf_min, args.buf_max, args.dupacks, args.cca,
                    not args.no_compose, args.alpha, args.pacing, args.epsilon,
-                   args.unsat_core, args.simplify, args.aimd_incr_irrespective)
+                   args.unsat_core, args.simplify, args.aimd_incr_irrespective,args.enhancement)
 
     @classmethod
     def default(cls):

@@ -17,10 +17,14 @@ class BBRSimpleVariables:
 def cca_bbr(c: ModelConfig, s: MySolver, v: Variables):
     # The period over which we compute rates
     P = c.R
-    # Number of RTTs over which we compute the max_cwnd (=10 in the spec)
-    max_R = 4
-    # The number of RTTs in the BBR cycle (=8 in the spec)
-    cycle = 4
+    if c.enhancement:
+        # Number of RTTs over which we compute the max_cwnd (=10 in the spec)
+        max_R = 10
+        # The number of RTTs in the BBR cycle (=8 in the spec)
+        cycle = 8
+    else:
+        max_R = 4
+        cycle = 4
     # The state the flow starts in at t=0
     start_state_f = [s.Int(f"bbr_start_state_{n}") for n in range(c.N)]
 
@@ -45,7 +49,11 @@ def cca_bbr(c: ModelConfig, s: MySolver, v: Variables):
             s_1 = (start_state_f[n] == (1 - t / c.R) % cycle)
             s.add(Implies(s_0,
                           v.r_f[n][t] == 1.25 * max_rate[-1]))
-            s.add(Implies(s_1,
-                          v.r_f[n][t] == 0.8 * max_rate[-1]))
+            if c.enhancement:
+                s.add(Implies(s_1,
+                              v.r_f[n][t] == 0.75 * max_rate[-1]))
+            else:
+                s.add(Implies(s_1,
+                              v.r_f[n][t] == 0.8 * max_rate[-1]))
             s.add(Implies(And(Not(s_0), Not(s_1)),
                           v.r_f[n][t] == 1 * max_rate[-1]))
