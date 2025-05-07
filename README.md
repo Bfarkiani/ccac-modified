@@ -1,4 +1,4 @@
-# Formally Verifying Congestion Control Performance
+# Formally Verifying Congestion Control Performance (CCAC-Enhanced)
 
 This repository analyzes the code accompanying the SIGCOMM 2021 paper _"Formally Verifying Congestion Control Performance"_ by Venkat Arun, Mina Tahmasbi Arashloo, Ahmed Saeed, Mohammad Alizadeh, and Hari Balakrishnan.
 
